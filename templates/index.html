@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinic Management System</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f4f8; color: #1a202c; min-height: 100vh; }
+
+  /* Sidebar */
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar { width: 220px; background: #1a365d; color: white; padding: 20px 0; position: fixed; height: 100vh; }
+  .sidebar h2 { padding: 0 20px 20px; font-size: 16px; border-bottom: 1px solid #2d4a7a; color: #90cdf4; }
+  .sidebar nav a { display: block; padding: 12px 20px; color: #bee3f8; text-decoration: none; font-size: 14px; transition: background 0.2s; cursor: pointer; }
+  .sidebar nav a:hover, .sidebar nav a.active { background: #2b4c8a; color: white; }
+  .sidebar nav a span { margin-right: 8px; }
+
+  /* Main */
+  .main { margin-left: 220px; padding: 24px; flex: 1; }
+  .page { display: none; }
+  .page.active { display: block; }
+  h1 { font-size: 22px; color: #1a365d; margin-bottom: 20px; }
+
+  /* Cards */
+  .card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 20px; }
+  .card h3 { font-size: 15px; color: #2d3748; margin-bottom: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat { background: white; padding: 16px; border-radius: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); text-align: center; }
+  .stat .num { font-size: 28px; font-weight: 700; color: #2b6cb0; }
+  .stat .lbl { font-size: 12px; color: #718096; margin-top: 4px; }
+
+  /* Forms */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 13px; color: #4a5568; margin-bottom: 5px; font-weight: 500; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid #cbd5e0; border-radius: 6px;
+    font-size: 14px; color: #2d3748; background: #f7fafc; transition: border 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus { outline: none; border-color: #4299e1; background: white; }
+  .form-group textarea { resize: vertical; min-height: 70px; }
+  .hint { font-size: 11px; color: #a0aec0; margin-top: 3px; }
+
+  /* Buttons */
+  .btn { padding: 9px 18px; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.2s; }
+  .btn-primary { background: #3182ce; color: white; }
+  .btn-primary:hover { background: #2b6cb0; }
+  .btn-success { background: #38a169; color: white; }
+  .btn-danger { background: #e53e3e; color: white; font-size: 12px; padding: 5px 10px; }
+  .btn-warn { background: #dd6b20; color: white; font-size: 12px; padding: 5px 10px; }
+  .btn-send { background: #6b46c1; color: white; font-size: 12px; padding: 5px 10px; }
+  .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #edf2f7; padding: 10px 12px; text-align: left; color: #4a5568; font-weight: 600; }
+  td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; color: #2d3748; }
+  tr:hover td { background: #f7fafc; }
+
+  /* Status badges */
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+  .badge-scheduled { background: #bee3f8; color: #1a4971; }
+  .badge-completed { background: #c6f6d5; color: #1a4731; }
+  .badge-cancelled { background: #fed7d7; color: #742a2a; }
+  .badge-sent { background: #c6f6d5; color: #1a4731; }
+  .badge-pending { background: #fefcbf; color: #744210; }
+
+  /* Alert */
+  .alert { padding: 12px 16px; border-radius: 6px; margin-bottom: 16px; font-size: 13px; display: none; }
+  .alert-success { background: #c6f6d5; color: #1a4731; border: 1px solid #9ae6b4; }
+  .alert-error { background: #fed7d7; color: #742a2a; border: 1px solid #fc8181; }
+
+  .section-grid { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .section-grid { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } }
+
+  .empty { text-align: center; padding: 30px; color: #a0aec0; font-size: 14px; }
+  .template-hint { background: #ebf8ff; padding: 10px 12px; border-radius: 6px; font-size: 12px; color: #2c5282; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>🏥 Clinic System</h2>
+    <nav>
+      <a class="active" onclick="showPage('dashboard')"><span>📊</span> Dashboard</a>
+      <a onclick="showPage('patients')"><span>👥</span> Patients</a>
+      <a onclick="showPage('appointments')"><span>📅</span> Appointments</a>
+      <a onclick="showPage('festivals')"><span>🎉</span> Festival Messages</a>
+      <a onclick="showPage('doctors')"><span>👨‍⚕️</span> Doctors</a>
+    </nav>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <h1>Dashboard</h1>
+      <div class="stats">
+        <div class="stat"><div class="num" id="total-patients">—</div><div class="lbl">Total Patients</div></div>
+        <div class="stat"><div class="num" id="total-appts">—</div><div class="lbl">Appointments</div></div>
+        <div class="stat"><div class="num" id="scheduled-appts">—</div><div class="lbl">Scheduled</div></div>
+        <div class="stat"><div class="num" id="total-festivals">—</div><div class="lbl">Festivals Set</div></div>
+      </div>
+      <div class="card">
+        <h3>Upcoming Appointments</h3>
+        <table>
+          <thead><tr><th>Patient</th><th>Doctor</th><th>Date & Time</th><th>Status</th></tr></thead>
+          <tbody id="upcoming-tbody"><tr><td colspan="4" class="empty">Loading...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PATIENTS -->
+    <div id="page-patients" class="page">
+      <h1>Patients</h1>
+      <div class="section-grid">
+        <div class="card">
+          <h3>Add New Patient</h3>
+          <div id="alert-patient" class="alert"></div>
+          <div class="form-group"><label>Full Name *</label><input id="p-name" placeholder="e.g. Ramesh Kumar"></div>
+          <div class="form-group">
+            <label>WhatsApp Number *</label>
+            <input id="p-phone" placeholder="+919876543210">
+            <div class="hint">Must include country code: +91 for India</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Age</label><input id="p-age" type="number" placeholder="35"></div>
+          </div>
+          <div class="form-group"><label>Address</label><textarea id="p-address" placeholder="Full address..."></textarea></div>
+          <button class="btn btn-primary" onclick="addPatient()">Add Patient</button>
+        </div>
+        <div class="card">
+          <h3>All Patients (<span id="patient-count">0</span>)</h3>
+          <table>
+            <thead><tr><th>Name</th><th>Phone</th><th>Age</th><th>Action</th></tr></thead>
+            <tbody id="patients-tbody"><tr><td colspan="4" class="empty">No patients yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPOINTMENTS -->
+    <div id="page-appointments" class="page">
+      <h1>Appointments</h1>
+      <div class="section-grid">
+        <div class="card">
+          <h3>Book Appointment</h3>
+          <div id="alert-appt" class="alert"></div>
+          <div class="form-group"><label>Patient *</label><select id="a-patient"><option value="">Select patient...</option></select></div>
+          <div class="form-group"><label>Doctor *</label><select id="a-doctor"><option value="">Select doctor...</option></select></div>
+          <div class="form-group"><label>Date & Time *</label><input id="a-date" type="datetime-local"></div>
+          <div class="form-group"><label>Reason / Notes</label><textarea id="a-reason" placeholder="Reason for visit..."></textarea></div>
+          <button class="btn btn-primary" onclick="bookAppointment()">📅 Book & Send WhatsApp</button>
+        </div>
+        <div class="card">
+          <h3>All Appointments</h3>
+          <table>
+            <thead><tr><th>Patient</th><th>Doctor</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="appointments-tbody"><tr><td colspan="5" class="empty">No appointments yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FESTIVAL MESSAGES -->
+    <div id="page-festivals" class="page">
+      <h1>Festival Messages</h1>
+      <div class="section-grid">
+        <div class="card">
+          <h3>Add Festival Message</h3>
+          <div id="alert-festival" class="alert"></div>
+          <div class="form-group"><label>Festival Name *</label><input id="f-name" placeholder="e.g. Diwali, Holi, Eid"></div>
+          <div class="form-group"><label>Festival Date *</label><input id="f-date" type="date"></div>
+          <div class="form-group">
+            <label>Message Template *</label>
+            <div class="template-hint">Use <strong>{name}</strong> to insert patient's name automatically</div>
+            <textarea id="f-msg" rows="5" placeholder="e.g. Happy Diwali {name}! 🪔&#10;Wishing you and your family a bright and joyful festival.&#10;– Your Clinic Team"></textarea>
+          </div>
+          <button class="btn btn-success" onclick="addFestival()">Save Festival Message</button>
+        </div>
+        <div class="card">
+          <h3>Scheduled Festival Messages</h3>
+          <table>
+            <thead><tr><th>Festival</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="festivals-tbody"><tr><td colspan="4" class="empty">No festivals added yet</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCTORS -->
+    <div id="page-doctors" class="page">
+      <h1>Doctors</h1>
+      <div class="section-grid">
+        <div class="card">
+          <h3>Add Doctor</h3>
+          <div class="form-group"><label>Doctor Name *</label><input id="d-name" placeholder="e.g. Sharma"></div>
+          <div class="form-group"><label>Specialization</label><input id="d-spec" placeholder="e.g. General Physician"></div>
+          <button class="btn btn-primary" onclick="addDoctor()">Add Doctor</button>
+        </div>
+        <div class="card">
+          <h3>All Doctors</h3>
+          <table>
+            <thead><tr><th>Name</th><th>Specialization</th></tr></thead>
+            <tbody id="doctors-tbody"><tr><td colspan="2" class="empty">Loading...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end main -->
+</div>
+
+<script>
+const BASE = '/api';
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  event.target.closest('a').classList.add('active');
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'patients') loadPatients();
+  if (name === 'appointments') { loadAppointments(); loadPatientDropdown(); loadDoctorDropdown(); }
+  if (name === 'festivals') loadFestivals();
+  if (name === 'doctors') loadDoctors();
+}
+
+function showAlert(id, msg, type='success') {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `alert alert-${type}`;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+
+async function apiCall(url, method='GET', body=null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(BASE + url, opts);
+  return res.json();
+}
+
+// ── DASHBOARD ──────────────────────────────────────────────────────
+async function loadDashboard() {
+  const [patients, appts, festivals] = await Promise.all([
+    apiCall('/patients'), apiCall('/appointments'), apiCall('/festivals')
+  ]);
+  document.getElementById('total-patients').textContent = patients.length;
+  document.getElementById('total-appts').textContent = appts.length;
+  document.getElementById('scheduled-appts').textContent = appts.filter(a => a.status === 'scheduled').length;
+  document.getElementById('total-festivals').textContent = festivals.length;
+
+  const upcoming = appts.filter(a => a.status === 'scheduled').slice(0, 8);
+  const tbody = document.getElementById('upcoming-tbody');
+  if (upcoming.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No upcoming appointments</td></tr>'; return; }
+  tbody.innerHTML = upcoming.map(a => `
+    <tr>
+      <td>${a.patient_name}</td>
+      <td>Dr. ${a.doctor_name}</td>
+      <td>${formatDate(a.appointment_date)}</td>
+      <td><span class="badge badge-${a.status}">${a.status}</span></td>
+    </tr>`).join('');
+}
+
+// ── PATIENTS ──────────────────────────────────────────────────────
+async function loadPatients() {
+  const patients = await apiCall('/patients');
+  document.getElementById('patient-count').textContent = patients.length;
+  const tbody = document.getElementById('patients-tbody');
+  if (!patients.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No patients yet</td></tr>'; return; }
+  tbody.innerHTML = patients.map(p => `
+    <tr>
+      <td><strong>${p.name}</strong></td>
+      <td>${p.phone}</td>
+      <td>${p.age || '—'}</td>
+      <td><button class="btn btn-danger" onclick="deletePatient(${p.id})">Delete</button></td>
+    </tr>`).join('');
+}
+
+async function addPatient() {
+  const name = document.getElementById('p-name').value.trim();
+  const phone = document.getElementById('p-phone').value.trim();
+  const age = document.getElementById('p-age').value;
+  const address = document.getElementById('p-address').value.trim();
+  if (!name || !phone) { showAlert('alert-patient', 'Name and phone are required!', 'error'); return; }
+  const res = await apiCall('/patients', 'POST', { name, phone, age: age ? parseInt(age) : null, address });
+  if (res.error) { showAlert('alert-patient', res.error, 'error'); return; }
+  showAlert('alert-patient', 'Patient added successfully!');
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-phone').value = '';
+  document.getElementById('p-age').value = '';
+  document.getElementById('p-address').value = '';
+  loadPatients();
+}
+
+async function deletePatient(id) {
+  if (!confirm('Delete this patient?')) return;
+  await apiCall(`/patients/${id}`, 'DELETE');
+  loadPatients();
+}
+
+// ── APPOINTMENTS ──────────────────────────────────────────────────
+async function loadAppointments() {
+  const appts = await apiCall('/appointments');
+  const tbody = document.getElementById('appointments-tbody');
+  if (!appts.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">No appointments yet</td></tr>'; return; }
+  tbody.innerHTML = appts.map(a => `
+    <tr>
+      <td><strong>${a.patient_name}</strong></td>
+      <td>Dr. ${a.doctor_name}</td>
+      <td>${formatDate(a.appointment_date)}</td>
+      <td>
+        <span class="badge badge-${a.status}">${a.status}</span>
+        ${a.reminder_sent ? '<span class="badge badge-sent" style="margin-left:4px">📱 Reminded</span>' : ''}
+      </td>
+      <td>
+        ${a.status === 'scheduled' ? `
+          <button class="btn btn-warn" onclick="completeAppt(${a.id})">Done</button>
+          <button class="btn btn-danger" onclick="cancelAppt(${a.id})" style="margin-left:4px">Cancel</button>` : '—'}
+      </td>
+    </tr>`).join('');
+}
+
+async function loadPatientDropdown() {
+  const patients = await apiCall('/patients');
+  const sel = document.getElementById('a-patient');
+  sel.innerHTML = '<option value="">Select patient...</option>' +
+    patients.map(p => `<option value="${p.id}">${p.name} (${p.phone})</option>`).join('');
+}
+
+async function loadDoctorDropdown() {
+  const doctors = await apiCall('/doctors');
+  const sel = document.getElementById('a-doctor');
+  sel.innerHTML = '<option value="">Select doctor...</option>' +
+    doctors.map(d => `<option value="${d.id}">Dr. ${d.name} - ${d.specialization}</option>`).join('');
+}
+
+async function bookAppointment() {
+  const patient_id = document.getElementById('a-patient').value;
+  const doctor_id = document.getElementById('a-doctor').value;
+  const appointment_date = document.getElementById('a-date').value;
+  const reason = document.getElementById('a-reason').value;
+  if (!patient_id || !doctor_id || !appointment_date) {
+    showAlert('alert-appt', 'Please fill all required fields!', 'error'); return;
+  }
+  const res = await apiCall('/appointments', 'POST', { patient_id: parseInt(patient_id), doctor_id: parseInt(doctor_id), appointment_date, reason });
+  if (res.error) { showAlert('alert-appt', res.error, 'error'); return; }
+  showAlert('alert-appt', res.message);
+  document.getElementById('a-patient').value = '';
+  document.getElementById('a-doctor').value = '';
+  document.getElementById('a-date').value = '';
+  document.getElementById('a-reason').value = '';
+  loadAppointments();
+}
+
+async function cancelAppt(id) {
+  if (!confirm('Cancel this appointment? Patient will be notified via WhatsApp.')) return;
+  const res = await apiCall(`/appointments/${id}/cancel`, 'POST');
+  alert(res.message);
+  loadAppointments();
+}
+
+async function completeAppt(id) {
+  await apiCall(`/appointments/${id}/complete`, 'POST');
+  loadAppointments();
+}
+
+// ── FESTIVALS ──────────────────────────────────────────────────────
+async function loadFestivals() {
+  const festivals = await apiCall('/festivals');
+  const tbody = document.getElementById('festivals-tbody');
+  if (!festivals.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">No festivals added yet</td></tr>'; return; }
+  tbody.innerHTML = festivals.map(f => `
+    <tr>
+      <td><strong>${f.festival_name}</strong></td>
+      <td>${f.festival_date}</td>
+      <td><span class="badge ${f.sent ? 'badge-sent' : 'badge-pending'}">${f.sent ? 'Sent ✓' : 'Pending'}</span></td>
+      <td>
+        <button class="btn btn-send" onclick="sendFestivalNow(${f.id})">Send Now</button>
+        <button class="btn btn-danger" onclick="deleteFestival(${f.id})" style="margin-left:4px">Delete</button>
+      </td>
+    </tr>`).join('');
+}
+
+async function addFestival() {
+  const festival_name = document.getElementById('f-name').value.trim();
+  const festival_date = document.getElementById('f-date').value;
+  const message_template = document.getElementById('f-msg').value.trim();
+  if (!festival_name || !festival_date || !message_template) {
+    showAlert('alert-festival', 'All fields are required!', 'error'); return;
+  }
+  const res = await apiCall('/festivals', 'POST', { festival_name, festival_date, message_template });
+  if (res.error) { showAlert('alert-festival', res.error, 'error'); return; }
+  showAlert('alert-festival', 'Festival message saved!');
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-msg').value = '';
+  loadFestivals();
+}
+
+async function sendFestivalNow(id) {
+  if (!confirm('Send this festival message to ALL patients now via WhatsApp?')) return;
+  const res = await apiCall(`/festivals/${id}/send-now`, 'POST');
+  alert(res.message);
+  loadFestivals();
+}
+
+async function deleteFestival(id) {
+  if (!confirm('Delete this festival message?')) return;
+  await apiCall(`/festivals/${id}`, 'DELETE');
+  loadFestivals();
+}
+
+// ── DOCTORS ──────────────────────────────────────────────────────
+async function loadDoctors() {
+  const doctors = await apiCall('/doctors');
+  const tbody = document.getElementById('doctors-tbody');
+  tbody.innerHTML = doctors.map(d => `<tr><td>Dr. ${d.name}</td><td>${d.specialization}</td></tr>`).join('');
+}
+
+async function addDoctor() {
+  const name = document.getElementById('d-name').value.trim();
+  const specialization = document.getElementById('d-spec').value.trim();
+  if (!name) { alert('Doctor name is required'); return; }
+  await apiCall('/doctors', 'POST', { name, specialization });
+  document.getElementById('d-name').value = '';
+  document.getElementById('d-spec').value = '';
+  loadDoctors();
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────
+function formatDate(dateStr) {
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+// Load dashboard on start
+loadDashboard();
+</script>
+</body>
+</html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clinic</title>
+</head>
+<body>
+    <h1>Welcome to Pushpa Dental Clinic</h1>
+</body>
+</html>
