@@ -1,3 +1,4 @@
+import os
 from flask import Flask, render_template
 from models import db
 from routes import api
