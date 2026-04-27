@@ -138,3 +138,39 @@ def add_festival():
     db.session.commit()
 
     return jsonify({'message': 'Festival saved'})
+@api.route('/appointments', methods=['GET'])
+def get_appointments():
+    appointments = Appointment.query.all()
+    return jsonify([{
+        'id': a.id,
+        'patient_name': a.patient.name,
+        'doctor_name': a.doctor.name,
+        'appointment_date': a.appointment_date.strftime('%Y-%m-%d %H:%M'),
+        'status': a.status
+    } for a in appointments])
+@api.route('/festivals', methods=['GET'])
+def get_festivals():
+    festivals = FestivalMessage.query.all()
+    return jsonify([{
+        'id': f.id,
+        'festival_name': f.festival_name,
+        'festival_date': f.festival_date.strftime('%Y-%m-%d'),
+        'message_template': f.message_template
+    } for f in festivals])
+@api.route('/festivals/<int:fid>/send-now', methods=['POST'])
+def send_festival_now(fid):
+    festival = FestivalMessage.query.get_or_404(fid)
+    patients = Patient.query.all()
+
+    for p in patients:
+        msg = festival.message_template.replace("{name}", p.name)
+        send_whatsapp(p.phone, msg)
+
+    return jsonify({'message': 'Festival messages sent'})
+@api.route('/appointments/<int:aid>/complete', methods=['POST'])
+def complete_appointment(aid):
+    appt = Appointment.query.get_or_404(aid)
+    appt.status = 'completed'
+    db.session.commit()
+
+    return jsonify({'message': 'Appointment marked as completed'})
