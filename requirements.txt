@@ -13,11 +13,13 @@ Flask==3.0.0
 Flask-SQLAlchemy==3.1.1
 frozenlist==1.8.0
 greenlet==3.4.0
+gunicorn==25.3.0
 idna==3.11
 itsdangerous==2.2.0
 Jinja2==3.1.6
 MarkupSafe==3.0.3
 multidict==6.7.1
+packaging==26.2
 propcache==0.4.1
 PyJWT==2.12.1
 python-dotenv==1.0.0

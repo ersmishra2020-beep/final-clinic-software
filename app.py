@@ -5,40 +5,48 @@ from routes import api
 from scheduler import start_scheduler
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
+
 
 def create_app():
     app = Flask(__name__)
 
-    # ─── Config ──────────────────────────────────────────────
+    # ─── Configuration ───────────────────────────────────────
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'clinic_default_key')
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///clinic.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+        'DATABASE_URL',
+        'sqlite:///clinic.db'
+    )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-    # ─── Database ────────────────────────────────────────────
+    # ─── Initialize Extensions ───────────────────────────────
     db.init_app(app)
 
-    # ─── Routes ──────────────────────────────────────────────
+    # ─── Register Blueprints ─────────────────────────────────
     app.register_blueprint(api, url_prefix='/api')
 
+    # ─── Routes ──────────────────────────────────────────────
     @app.route('/')
     def index():
         return render_template('index.html')
 
-    # ─── Create tables ───────────────────────────────────────
+    # ─── Database Setup ──────────────────────────────────────
     with app.app_context():
         db.create_all()
-        seed_sample_data(app)
+        seed_sample_data()
 
-    # ─── Start background scheduler ──────────────────────────
-    start_scheduler(app)
+    # ─── Scheduler (Safe for Production) ─────────────────────
+    if os.environ.get("RENDER") != "true":
+        start_scheduler(app)
 
     return app
 
 
-def seed_sample_data(app):
-    """Add a sample doctor if none exist."""
+def seed_sample_data():
+    """Add sample doctors if database is empty."""
     from models import Doctor
+
     if Doctor.query.count() == 0:
         doctors = [
             Doctor(name='Sharma', specialization='General Physician'),
@@ -50,8 +58,9 @@ def seed_sample_data(app):
         print("[Setup] Sample doctors added.")
 
 
+# ─── Local Development Entry Point ──────────────────────────
 if __name__ == '__main__':
     app = create_app()
     print("\n✅ Clinic System Running!")
     print("   Open: http://localhost:5000\n")
-    app.run(debug=True, use_reloader=False)
+    app.run(debug=False)
