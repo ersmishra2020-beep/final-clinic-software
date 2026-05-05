@@ -108,3 +108,18 @@ gunicorn -w 1 -b 0.0.0.0:5000 "app:create_app()"
 # Using nohup:
 nohup python app.py &
 ```
+## 🚀 Production Deployment (Render)
+
+### Start Command
+gunicorn "app:create_app()"
+
+### Build Command
+pip install -r requirements.txt
+
+### Environment Variables
+SECRET_KEY=your_secret
+DATABASE_URL=your_db_url
+TWILIO_ACCOUNT_SID=xxx
+TWILIO_AUTH_TOKEN=xxx
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+RUN_SCHEDULER=true
